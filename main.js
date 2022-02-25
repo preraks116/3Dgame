@@ -14,11 +14,36 @@ let score = 0;
 let time = 0;
 
 let keyPressed = {
-  "w" : 0,
-  "a" : 0,
-  "s" : 0,
-  "d" : 0,
-  "space" : 0
+  "w": {
+    "pressed": 0,
+    f: () => {
+      boat.speed.vel = 1
+    }
+  },
+  "a": {
+    "pressed": 0,
+    f: () => {
+      boat.speed.rot = 0.1
+    }
+  },
+  "s": {
+    "pressed": 0,
+    f: () => {
+      boat.speed.vel = -1
+    }
+  },
+  "d": {
+    "pressed": 0,
+    f: () => {
+      boat.speed.rot = -0.1
+    }
+  },
+  "space": {
+    "pressed": 0,
+    f: () => {
+
+    }
+  }
 }
 
 const loader = new GLTFLoader();
@@ -197,13 +222,11 @@ async function init() {
   window.addEventListener( 'resize', onWindowResize );
 
   window.addEventListener( 'keydown', function(e){
-    keyPressed[e.key] = 1
+    keyPressed[e.key].pressed = 1
   })
   window.addEventListener( 'keyup', function(e){
     boat.stop()
   })
-
-
 }
 
 function onWindowResize() {
@@ -232,7 +255,6 @@ function checkCollisions(){
           {
             score +=1
             trash.collected = 1
-            console.log(score)
           }
         }
       }
@@ -242,34 +264,19 @@ function checkCollisions(){
 
 function resetbools(){
   for(let key in keyPressed){
-    keyPressed[key] = 0
+    keyPressed[key].pressed = 0
   }
 }
 
-function animate() {
-  requestAnimationFrame(animate);
-  render();
-  checkCollisions()
-  // console.log(keyPressed.w)
-  if(keyPressed.w)
-  {
-    boat.speed.vel = 1
+function setbools(){
+  for (let key in keyPressed) {
+    if (keyPressed[key]["pressed"]) {
+      keyPressed[key].f();
+    }
   }
-  if(keyPressed.s)
-  {
-    boat.speed.vel = -1
-  }
-  if(keyPressed.a)
-  {
-    boat.speed.rot = 0.1
-  }
-  if(keyPressed.d)
-  {
-    boat.speed.rot = -0.1
-  }
-  boat.update()
-  resetbools()
+}
 
+function updatehud(){
   time++;
   if(time % 60 == 0)
   {
@@ -277,6 +284,16 @@ function animate() {
     document.getElementById("time").innerHTML = "Time: " + time/60 + "s"
   }
   document.getElementById("score").innerHTML = "Score: " + score
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  render();
+  checkCollisions();
+  setbools();
+  boat.update();
+  resetbools();
+  updatehud();
 }
 
 function render() {
