@@ -31,3 +31,14 @@
 	z-index: 100;
 	display:block;
 }
+
+#gameover {
+	position: absolute;
+	height: 50%;
+	width: 50%;
+  	font-size: 40px;
+	width: 100%;
+	text-align: center;
+	z-index: 100;
+	display:none;
+}

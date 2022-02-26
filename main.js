@@ -42,24 +42,14 @@ let keyPressed = {
   "h": {
     "pressed": 0,
     f: () => {
-      cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z, shipForward));
+      // cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z, shipForward));
+      PlayerBallsList.push(new cannonBall(PlayerBoat.boat.position.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z, shipForward));
     }
   }
-  // "b": {
-  //   "pressed": 0,
-  //   f: () => {
-  //     camera.position.set(PlayerBoat.boat.position.x, PlayerBoat.boat.position.y + 300, PlayerBoat.boat.position.z)
-  //     camera.lookAt(PlayerBoat.boat.position)
-  //   }
-  // }
 }
 
 let viewBool = 0
 
-// const ballOffset = {
-//   "x": 150,
-//   "z": 780
-// }
 
 const loader = new GLTFLoader();
 
@@ -74,11 +64,9 @@ function updatecamera(){
   if(PlayerBoat.speed.vel)
   {
     camera.position.sub(shipForward.clone().multiplyScalar(-1*PlayerBoat.speed.vel))  
-    // cameravector.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
   }
   if(PlayerBoat.speed.rot)
   {
-    // cameravector.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
     // rotate shipForward
     shipForward.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
     if(viewBool == 0)
@@ -99,6 +87,7 @@ class Boat {
       gltf.scene.scale.set(5, 5, 5)
       gltf.scene.position.set(0,-1.5,-80)
       this.boat = gltf.scene
+      this.isDead = 0
       this.speed = {
         vel: 0,
         rot: 0
@@ -133,7 +122,7 @@ class cannonBall {
     // console.log(x,y,z) 
     loader.load("assets/cannonBall/untitled.gltf", (gltf) => {
       scene.add(gltf.scene)
-      gltf.scene.scale.set(100, 100, 100)
+      gltf.scene.scale.set(50, 50, 50)
       gltf.scene.position.set(x,5,z)
       this.initDirection = w.clone()
       this.ball = gltf.scene
@@ -157,7 +146,9 @@ class cannonBall {
   }
 }
 
-let cannonBallList = []
+let PlayerBallsList = []
+let EnemyBallsList = []
+// let cannonBallList = []
 
 // creating an ememy boat class 
 class Enemy {
@@ -174,7 +165,7 @@ class Enemy {
       this.boat = gltf.scene
       this.destroyed = 0
       this.initDirection = (PlayerBoat.boat.position.clone().add(this.boat.position.clone().multiplyScalar(-1))).multiplyScalar(0.005)
-      this.hasFired = 0
+      // this.hasFired = 0
       this.speed = {
         vel: 0,
         rot: 0
@@ -196,7 +187,8 @@ class Enemy {
       // check distance of boat from player
       let distance = Math.sqrt(Math.pow(this.boat.position.x - PlayerBoat.boat.position.x, 2) + Math.pow(this.boat.position.z - PlayerBoat.boat.position.z, 2))
       // console.log(distance)
-      if(distance < 70 && this.hasFired == 0){
+      
+      if(distance < 150 && time % 120 == 0){
         console.log(this.initDirection)
         let x = this.boat.position.x - PlayerBoat.boat.x
         let y = this.boat.position.y - PlayerBoat.boat.y
@@ -206,7 +198,8 @@ class Enemy {
         // console.log(type(shipForward)) 
         // const cannonball = new cannonBall(this.boat.position.x, this.boat.position.y, this.boat.position.z, new THREE.Vector3(x,y,z))
         const cannonball = new cannonBall(this.boat.position.x, this.boat.position.y, this.boat.position.z, (PlayerBoat.boat.position.clone().add(this.boat.position.clone().multiplyScalar(-1))).multiplyScalar(0.01))
-        cannonBallList.push(cannonball)
+        // cannonBallList.push(cannonball)
+        EnemyBallsList.push(cannonball)
         this.hasFired = 1
       }
     }
@@ -413,30 +406,43 @@ function checkCollisions(){
       }
     })
 
-    // cannonBallList.forEach(cannonBall => {
-    //   if(cannonBall.ball){
-    //     if(isColliding(PlayerBoat.boat, cannonBall.ball)){
-    //       scene.remove(cannonBall.ball)
-    //       if(cannonBall.destroyed === 0)
-    //       {
-    //         health -= 10
-    //         cannonBall.destroyed = 1
-    //       }
-    //     }
+    PlayerBallsList.forEach(cannonBall => {
+      if(cannonBall.ball)
+      {
+        enemyList.forEach(enemy => {
+          if(isColliding(cannonBall.ball,enemy.boat))
+          {
+            if(enemy.destroyed === 0)
+            {
+              scene.remove(enemy.boat)
+              score+=10
+              enemy.destroyed = 1
+            }
+            if(cannonBall.destroyed === 0)
+            {
+              scene.remove(cannonBall.ball)
+              cannonBall.destroyed = 1
+            }
+          }
+        })
+        
+      }
+    })
 
-    //     enemyList.forEach(enemy => {
-    //       if(enemy.boat){
-    //         if(isColliding(cannonBall.ball, enemy.boat)){
-    //           scene.remove(enemy.boat)
-    //           if(enemy.destroyed === 0)
-    //           {
-    //             enemy.destroyed = 1
-    //           }
-    //         }
-    //       }
-    //     })
-    //   }
-    // })
+    EnemyBallsList.forEach(cannonBall => {
+      if(cannonBall.ball)
+      {
+        if(isColliding(cannonBall.ball,PlayerBoat.boat))
+        {
+          if(cannonBall.destroyed === 0)
+          {
+            scene.remove(cannonBall.ball)
+            health -= 10
+            cannonBall.destroyed = 1
+          }
+        }
+      }
+    })
   }
 }
 
@@ -469,8 +475,11 @@ function updatehud(){
 function updateEnemies(){
   if((time % (1800)) == 0)
   {
-    const enemy = new Enemy()
-    enemyList.push(enemy) 
+    for(let i = 0; i < 2; i++)
+    {
+      const enemy = new Enemy()
+      enemyList.push(enemy) 
+    }
     enemySpeed -= 0.05
   }
   enemyList.forEach(enemy => {
@@ -479,21 +488,43 @@ function updateEnemies(){
 }
 
 function updateBalls(){
-  cannonBallList.forEach(ball => {
+  PlayerBallsList.forEach(ball => {
     ball.update();
   })
+  EnemyBallsList.forEach(ball => {
+    ball.update();
+  })
+  // cannonBallList.forEach(ball => {
+  //   ball.update();
+  // })
+}
+
+function checkgameOver()
+{
+  if(health <= 0)
+  {
+    PlayerBoat.boat.isDead = 
+    health = 0
+    renderer.setAnimationLoop(null);
+    document.getElementById("gameover").innerHTML = "GAME OVER"
+    document.getElementById("gameover").style.display = "block"
+  }
 }
 
 function animate() {
   requestAnimationFrame(animate);
-  render();
-  checkCollisions();
-  setbools();
-  PlayerBoat.update();
-  resetbools();
-  updatehud();
-  updateEnemies();
-  updateBalls();
+  if(health > 0)
+  {
+    render();
+    checkCollisions();
+    setbools();
+    PlayerBoat.update();
+    resetbools();
+    updatehud();
+    updateEnemies();
+    updateBalls();
+  }
+  checkgameOver();
 }
 
 function render() {
