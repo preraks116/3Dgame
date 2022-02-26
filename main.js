@@ -42,17 +42,16 @@ let keyPressed = {
   "h": {
     "pressed": 0,
     f: () => {
-      // cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x + ballOffset.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z + ballOffset.z));
       cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z, shipForward));
 
     }
   }
 }
 
-const ballOffset = {
-  "x": 150,
-  "z": 780
-}
+// const ballOffset = {
+//   "x": 150,
+//   "z": 780
+// }
 
 const loader = new GLTFLoader();
 
@@ -118,7 +117,7 @@ let enemySpeed = -0.1
 
 class cannonBall {
   constructor(x,y,z,w){
-    console.log(x,y,z) 
+    // console.log(x,y,z) 
     loader.load("assets/cannonBall/untitled.gltf", (gltf) => {
       scene.add(gltf.scene)
       gltf.scene.scale.set(100, 100, 100)
@@ -161,6 +160,8 @@ class Enemy {
       gltf.scene.position.set(x,-1.5,z)
       this.boat = gltf.scene
       this.destroyed = 0
+      this.initDirection = (PlayerBoat.boat.position.clone().add(this.boat.position.clone().multiplyScalar(-1))).multiplyScalar(0.005)
+      this.hasFired = 0
       this.speed = {
         vel: 0,
         rot: 0
@@ -174,16 +175,26 @@ class Enemy {
   }
 
   update(){
-    if(this.boat){
+    if(this.boat && this.destroyed == 0){
       this.boat.lookAt(PlayerBoat.boat.position)
       this.boat.rotateY(Math.PI/2)
       this.boat.translateX(enemySpeed)
+
       // check distance of boat from player
       let distance = Math.sqrt(Math.pow(this.boat.position.x - PlayerBoat.boat.position.x, 2) + Math.pow(this.boat.position.z - PlayerBoat.boat.position.z, 2))
       // console.log(distance)
-      if(distance < 100){
-        // const cannonball = new cannonBall(this.boat.position.x, this.boat.position.y, this.boat.position.z)
-        // cannonBallList.push(cannonball)
+      if(distance < 70 && this.hasFired == 0){
+        console.log(this.initDirection)
+        let x = this.boat.position.x - PlayerBoat.boat.x
+        let y = this.boat.position.y - PlayerBoat.boat.y
+        let z = this.boat.position.z - PlayerBoat.boat.z
+        
+        // console.log(shipForward)
+        // console.log(type(shipForward)) 
+        // const cannonball = new cannonBall(this.boat.position.x, this.boat.position.y, this.boat.position.z, new THREE.Vector3(x,y,z))
+        const cannonball = new cannonBall(this.boat.position.x, this.boat.position.y, this.boat.position.z, (PlayerBoat.boat.position.clone().add(this.boat.position.clone().multiplyScalar(-1))).multiplyScalar(0.01))
+        cannonBallList.push(cannonball)
+        this.hasFired = 1
       }
     }
   }
