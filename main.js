@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { Water } from 'three/examples/jsm/objects/Water.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { Vector3 } from 'three';
+import { Camera, Vector3 } from 'three';
 
 let camera, scene, renderer;
 let water, sun;
@@ -24,7 +24,7 @@ let keyPressed = {
   "a": {
     "pressed": 0,
     f: () => {
-      PlayerBoat.speed.rot = 0.1
+      PlayerBoat.speed.rot = 0.01
     }
   },
   "s": {
@@ -36,17 +36,25 @@ let keyPressed = {
   "d": {
     "pressed": 0,
     f: () => {
-      PlayerBoat.speed.rot = -0.1
+      PlayerBoat.speed.rot = -0.01
     }
   },
   "h": {
     "pressed": 0,
     f: () => {
       cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z, shipForward));
-
     }
   }
+  // "b": {
+  //   "pressed": 0,
+  //   f: () => {
+  //     camera.position.set(PlayerBoat.boat.position.x, PlayerBoat.boat.position.y + 300, PlayerBoat.boat.position.z)
+  //     camera.lookAt(PlayerBoat.boat.position)
+  //   }
+  // }
 }
+
+let viewBool = 0
 
 // const ballOffset = {
 //   "x": 150,
@@ -65,18 +73,23 @@ let shipForward = new THREE.Vector3(0, 0, -1);
 function updatecamera(){
   if(PlayerBoat.speed.vel)
   {
-    camera.position.sub(shipForward.clone().multiplyScalar(-1*PlayerBoat.speed.vel))
+    camera.position.sub(shipForward.clone().multiplyScalar(-1*PlayerBoat.speed.vel))  
+    // cameravector.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
   }
   if(PlayerBoat.speed.rot)
   {
-    cameravector.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
+    // cameravector.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
     // rotate shipForward
     shipForward.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
-    camera.position.x = PlayerBoat.boat.position.x + cameravector.x
-    camera.position.y = PlayerBoat.boat.position.y + cameravector.y
-    camera.position.z = PlayerBoat.boat.position.z + cameravector.z
-    camera.lookAt(PlayerBoat.boat.position)
+    if(viewBool == 0)
+    {
+      camera.position.x = PlayerBoat.boat.position.x + cameravector.x
+      camera.position.y = PlayerBoat.boat.position.y + cameravector.y
+      camera.position.z = PlayerBoat.boat.position.z + cameravector.z
+      camera.lookAt(PlayerBoat.boat.position)
+    }
   }
+  cameravector.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
 }
 
 class Boat {
@@ -202,8 +215,6 @@ class Enemy {
 
 
 const PlayerBoat = new Boat()
-// const ball = new cannonBall(10,5,-80)
-// cannonBallList.push(ball)
 
 
 let enemyList = []
@@ -333,6 +344,25 @@ async function init() {
     if(e.key in keyPressed)
     {
       keyPressed[e.key].pressed = 1
+    }
+    if(e.key == "b")
+    {
+      viewBool = (viewBool + 1) % 2
+      console.log(viewBool)
+      if(viewBool)
+      {
+        camera.position.set(PlayerBoat.boat.position.x, PlayerBoat.boat.position.y + 300, PlayerBoat.boat.position.z)
+        camera.lookAt(PlayerBoat.boat.position)
+      }
+      else
+      {
+        camera.position.x = PlayerBoat.boat.position.x + cameravector.x
+        camera.position.y = PlayerBoat.boat.position.y + cameravector.y
+        camera.position.z = PlayerBoat.boat.position.z + cameravector.z
+        camera.lookAt(PlayerBoat.boat.position)
+        console.log(camera.position)
+        console.log(PlayerBoat.boat.position)
+      }
     }
   })
 
