@@ -12,38 +12,46 @@ let camera, scene, renderer;
 let water, sun;
 let score = 0;
 let time = 0;
+let health = 100;
 
 let keyPressed = {
   "w": {
     "pressed": 0,
     f: () => {
-      boat.speed.vel = 1
+      PlayerBoat.speed.vel = 1
     }
   },
   "a": {
     "pressed": 0,
     f: () => {
-      boat.speed.rot = 0.1
+      PlayerBoat.speed.rot = 0.1
     }
   },
   "s": {
     "pressed": 0,
     f: () => {
-      boat.speed.vel = -1
+      PlayerBoat.speed.vel = -1
     }
   },
   "d": {
     "pressed": 0,
     f: () => {
-      boat.speed.rot = -0.1
+      PlayerBoat.speed.rot = -0.1
     }
   },
-  "space": {
+  "h": {
     "pressed": 0,
     f: () => {
+      // cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x + ballOffset.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z + ballOffset.z));
+      cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z));
 
     }
   }
+}
+
+const ballOffset = {
+  "x": 150,
+  "z": 780
 }
 
 const loader = new GLTFLoader();
@@ -55,14 +63,29 @@ function random(min, max) {
 // initial vector looking at the sun
 let shipForward = new THREE.Vector3(0, 0, -1);
 
+function updatecamera(){
+  if(PlayerBoat.speed.vel)
+  {
+    camera.position.sub(shipForward.clone().multiplyScalar(-1*PlayerBoat.speed.vel))
+  }
+  if(PlayerBoat.speed.rot)
+  {
+    cameravector.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
+    // rotate shipForward
+    shipForward.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
+    camera.position.x = PlayerBoat.boat.position.x + cameravector.x
+    camera.position.y = PlayerBoat.boat.position.y + cameravector.y
+    camera.position.z = PlayerBoat.boat.position.z + cameravector.z
+    camera.lookAt(PlayerBoat.boat.position)
+  }
+}
+
 class Boat {
   constructor(){
     loader.load("assets/boat/scene2.gltf", (gltf) => {
       scene.add(gltf.scene)
       gltf.scene.scale.set(5, 5, 5)
       gltf.scene.position.set(0,-1.5,-80)
-
-
       this.boat = gltf.scene
       this.speed = {
         vel: 0,
@@ -78,29 +101,120 @@ class Boat {
 
   update(){
     if(this.boat){
-      if(this.speed.vel)
-      {
-        camera.position.sub(shipForward.clone().multiplyScalar(-1*this.speed.vel))
-      }
-      if(this.speed.rot)
-      {
-        cameravector.applyAxisAngle(new Vector3(0,1,0), boat.speed.rot)
-        // rotate shipForward
-        shipForward.applyAxisAngle(new Vector3(0,1,0), boat.speed.rot)
-        camera.position.x = boat.boat.position.x + cameravector.x
-        camera.position.y = boat.boat.position.y + cameravector.y
-        camera.position.z = boat.boat.position.z + cameravector.z
-        camera.lookAt(boat.boat.position)
-      }
+      updatecamera();
       this.boat.rotation.y += this.speed.rot
       this.boat.translateZ(-1*this.speed.vel)
     }
   }
 }
 
-const boat = new Boat()
+//function to get random angle between 0 and 2*PI
+function getRandomAngle(){
+  return Math.random() * 2 * Math.PI
+}
+
+let enemySpeed = -0.1
 
 
+class cannonBall {
+  constructor(x,y,z){
+    console.log(x,y,z) 
+    loader.load("assets/cannonBall/untitled.gltf", (gltf) => {
+      scene.add(gltf.scene)
+      gltf.scene.scale.set(100, 100, 100)
+      gltf.scene.position.set(x,5,z)
+      // gltf.scene.rotateOnAxis(new Vector3(0,1,0), getRandomAngle())
+      // ball should move in the direction of shipForward
+      // gltf.scene.rotateOnAxis(new Vector3(0,1,0), getRandomAngle())
+      let angle = Math.atan(PlayerBoat.boat.position.z/PlayerBoat.boat.position.x)
+      console.log(angle)
+      gltf.scene.lookAt(PlayerBoat.boat.position)
+      
+      gltf.scene.rotateOnAxis(new Vector3(1,0,0), Math.PI/2)
+      this.ball = gltf.scene
+      this.destroyed = 0
+      this.speed = {
+        vel: 1,
+        rot: 0
+      }
+    })
+  }
+
+  stop(){
+    this.speed.vel = 0
+    this.speed.rot = 0
+  }
+
+  update(){
+    if(this.ball){
+      // console.log(this.speed.vel)
+      // if(this.destroyed == 0)
+      // {
+      //   let distance = Math.sqrt(Math.pow(this.ball.position.x - PlayerBoat.boat.position.x,2) + Math.pow(this.ball.position.z - PlayerBoat.boat.position.z,2))
+      //   if(distance > 1000)
+      //   {
+      //     this.speed.vel = 0
+      //     scene.remove(this.ball)
+      //   }
+      // }
+      this.ball.translateZ(-1*this.speed.vel)
+    }
+  }
+}
+
+let cannonBallList = []
+
+// creating an ememy boat class 
+class Enemy {
+  constructor(){
+    loader.load("assets/boat/ship_wreck.gltf", (gltf) => {
+      let i = enemyList.length
+      scene.add(gltf.scene)
+      gltf.scene.scale.set(3, 3, 3)
+      let angle = getRandomAngle()
+      console.log(angle)
+      let x = PlayerBoat.boat.position.x + 200*(Math.cos(angle))
+      let z = PlayerBoat.boat.position.z + 200*(Math.sin(angle))
+      gltf.scene.position.set(x,-1.5,z)
+      this.boat = gltf.scene
+      this.destroyed = 0
+      this.speed = {
+        vel: 0,
+        rot: 0
+      }
+    })
+  }
+
+  stop(){
+    this.speed.vel = 0
+    this.speed.rot = 0
+  }
+
+  update(){
+    if(this.boat){
+      this.boat.lookAt(PlayerBoat.boat.position)
+      this.boat.rotateY(Math.PI/2)
+      this.boat.translateX(enemySpeed)
+      // check distance of boat from player
+      let distance = Math.sqrt(Math.pow(this.boat.position.x - PlayerBoat.boat.position.x, 2) + Math.pow(this.boat.position.z - PlayerBoat.boat.position.z, 2))
+      // console.log(distance)
+      if(distance < 100){
+        // const cannonball = new cannonBall(this.boat.position.x, this.boat.position.y, this.boat.position.z)
+        // cannonBallList.push(cannonball)
+      }
+    }
+  }
+}
+
+
+const PlayerBoat = new Boat()
+// const ball = new cannonBall(10,5,-80)
+// cannonBallList.push(ball)
+
+
+let enemyList = []
+const enemy = new Enemy()
+enemyList.push(enemy) 
 
 class Trash{
   constructor(_scene){
@@ -136,6 +250,8 @@ async function createTrash(){
 let trashes = []
 const TRASH_COUNT = 50
 let cameravector = new THREE.Vector3(0, 35.5, 80)
+
+
 
 async function init() {
   renderer = new THREE.WebGLRenderer();
@@ -174,9 +290,7 @@ async function init() {
 
   water.rotation.x = - Math.PI / 2;
 
-  scene.add( water );
-
-  // Skybox
+  scene.add(water);
 
   const sky = new Sky();
   sky.scale.setScalar(10000);
@@ -194,7 +308,7 @@ async function init() {
     azimuth: 180
   };
 
-  const pmremGenerator = new THREE.PMREMGenerator( renderer );
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
 
   function updateSun() {
 
@@ -222,10 +336,14 @@ async function init() {
   window.addEventListener( 'resize', onWindowResize );
 
   window.addEventListener( 'keydown', function(e){
-    keyPressed[e.key].pressed = 1
+    if(e.key in keyPressed)
+    {
+      keyPressed[e.key].pressed = 1
+    }
   })
+
   window.addEventListener( 'keyup', function(e){
-    boat.stop()
+    PlayerBoat.stop()
   })
 }
 
@@ -233,9 +351,7 @@ function onWindowResize() {
 
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-
   renderer.setSize( window.innerWidth, window.innerHeight );
-
 }
 
 function isColliding(obj1, obj2){
@@ -246,10 +362,10 @@ function isColliding(obj1, obj2){
 }
 
 function checkCollisions(){
-  if(boat.boat){
+  if(PlayerBoat.boat){
     trashes.forEach(trash => {
       if(trash.trash){
-        if(isColliding(boat.boat, trash.trash)){
+        if(isColliding(PlayerBoat.boat, trash.trash)){
           scene.remove(trash.trash)
           if(trash.collected === 0)
           {
@@ -259,6 +375,44 @@ function checkCollisions(){
         }
       }
     })
+
+    enemyList.forEach(enemy => {
+      if(enemy.boat){
+        if(isColliding(PlayerBoat.boat, enemy.boat)){
+          scene.remove(enemy.boat)
+          if(enemy.destroyed === 0)
+          {
+            health -= 25
+            enemy.destroyed = 1
+          }
+        }
+      }
+    })
+
+    // cannonBallList.forEach(cannonBall => {
+    //   if(cannonBall.ball){
+    //     if(isColliding(PlayerBoat.boat, cannonBall.ball)){
+    //       scene.remove(cannonBall.ball)
+    //       if(cannonBall.destroyed === 0)
+    //       {
+    //         health -= 10
+    //         cannonBall.destroyed = 1
+    //       }
+    //     }
+
+    //     enemyList.forEach(enemy => {
+    //       if(enemy.boat){
+    //         if(isColliding(cannonBall.ball, enemy.boat)){
+    //           scene.remove(enemy.boat)
+    //           if(enemy.destroyed === 0)
+    //           {
+    //             enemy.destroyed = 1
+    //           }
+    //         }
+    //       }
+    //     })
+    //   }
+    // })
   }
 }
 
@@ -280,10 +434,30 @@ function updatehud(){
   time++;
   if(time % 60 == 0)
   {
+    // console.log(time)
     //change inner html
     document.getElementById("time").innerHTML = "Time: " + time/60 + "s"
   }
+  document.getElementById("health").innerHTML = "Health: " + health
   document.getElementById("score").innerHTML = "Score: " + score
+}
+
+function updateEnemies(){
+  if((time % (1800)) == 0)
+  {
+    const enemy = new Enemy()
+    enemyList.push(enemy) 
+    enemySpeed -= 0.05
+  }
+  enemyList.forEach(enemy => {
+    enemy.update();
+  })
+}
+
+function updateBalls(){
+  cannonBallList.forEach(ball => {
+    ball.update();
+  })
 }
 
 function animate() {
@@ -291,17 +465,18 @@ function animate() {
   render();
   checkCollisions();
   setbools();
-  boat.update();
+  PlayerBoat.update();
   resetbools();
   updatehud();
+  updateEnemies();
+  updateBalls();
 }
 
 function render() {
   water.material.uniforms[ 'time' ].value += 1.0 / 60.0;
-
   renderer.render( scene, camera );
-
 }
 
 init();
+
 animate();
