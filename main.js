@@ -8,11 +8,24 @@ import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { Camera, Vector3 } from 'three';
 
-let camera, scene, renderer;
+let camera;
+let scene;
+let renderer;
 let water, sun;
 let score = 0;
 let time = 0;
 let health = 100;
+let enemySpeed = -0.1
+let viewBool = 0
+let cameravector = new THREE.Vector3(0, 35.5, 80)
+let shipForward = new THREE.Vector3(0, 0, -1);
+
+const Y_Axis = new Vector3(0,1,0)
+const loader = new GLTFLoader();
+
+let PlayerBallsList = []
+let EnemyBallsList = []
+let treasureList = []
 
 let keyPressed = {
   "w": {
@@ -48,17 +61,17 @@ let keyPressed = {
   }
 }
 
-let viewBool = 0
-
-
-const loader = new GLTFLoader();
-
 function random(min, max) {
   return Math.random() * (max - min) + min;
 }
 
+//function to get random angle between 0 and 2*PI
+function getRandomAngle(){
+  return Math.random() * 2 * Math.PI
+}
+
 // initial vector looking at the sun
-let shipForward = new THREE.Vector3(0, 0, -1);
+
 
 function updatecamera(){
   if(PlayerBoat.speed.vel)
@@ -68,7 +81,7 @@ function updatecamera(){
   if(PlayerBoat.speed.rot)
   {
     // rotate shipForward
-    shipForward.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
+    shipForward.applyAxisAngle(Y_Axis, PlayerBoat.speed.rot)
     if(viewBool == 0)
     {
       camera.position.x = PlayerBoat.boat.position.x + cameravector.x
@@ -77,9 +90,10 @@ function updatecamera(){
       camera.lookAt(PlayerBoat.boat.position)
     }
   }
-  cameravector.applyAxisAngle(new Vector3(0,1,0), PlayerBoat.speed.rot)
+  cameravector.applyAxisAngle(Y_Axis, PlayerBoat.speed.rot)
 }
 
+//creating a boat class
 class Boat {
   constructor(){
     loader.load("assets/boat/scene2.gltf", (gltf) => {
@@ -96,8 +110,14 @@ class Boat {
   }
 
   stop(){
-    this.speed.vel = 0
-    this.speed.rot = 0
+    if(!keyPressed.w.pressed || !keyPressed.s.pressed)
+    {
+      this.speed.vel = 0
+    }
+    if(!keyPressed.a.pressed || !keyPressed.d.pressed)
+    {
+      this.speed.rot = 0
+    }
   }
 
   update(){
@@ -109,20 +129,13 @@ class Boat {
   }
 }
 
-//function to get random angle between 0 and 2*PI
-function getRandomAngle(){
-  return Math.random() * 2 * Math.PI
-}
-
-let enemySpeed = -0.1
-
-
+// creating a cannonball class
 class cannonBall {
   constructor(x,y,z,w){
     // console.log(x,y,z) 
     loader.load("assets/cannonBall/untitled.gltf", (gltf) => {
       scene.add(gltf.scene)
-      gltf.scene.scale.set(50, 50, 50)
+      gltf.scene.scale.set(30, 30, 30)
       gltf.scene.position.set(x,5,z)
       this.initDirection = w.clone()
       this.ball = gltf.scene
@@ -146,15 +159,10 @@ class cannonBall {
   }
 }
 
-let PlayerBallsList = []
-let EnemyBallsList = []
-// let cannonBallList = []
-
 // creating an ememy boat class 
 class Enemy {
   constructor(){
     loader.load("assets/boat/ship_wreck.gltf", (gltf) => {
-      let i = enemyList.length
       scene.add(gltf.scene)
       gltf.scene.scale.set(3, 3, 3)
       let angle = getRandomAngle()
@@ -173,32 +181,20 @@ class Enemy {
     })
   }
 
-  stop(){
-    this.speed.vel = 0
-    this.speed.rot = 0
-  }
-
   update(){
     if(this.boat && this.destroyed == 0){
       this.boat.lookAt(PlayerBoat.boat.position)
       this.boat.rotateY(Math.PI/2)
       this.boat.translateX(enemySpeed)
-
-      // check distance of boat from player
       let distance = Math.sqrt(Math.pow(this.boat.position.x - PlayerBoat.boat.position.x, 2) + Math.pow(this.boat.position.z - PlayerBoat.boat.position.z, 2))
-      // console.log(distance)
-      
+    
       if(distance < 150 && time % 120 == 0){
         console.log(this.initDirection)
         let x = this.boat.position.x - PlayerBoat.boat.x
         let y = this.boat.position.y - PlayerBoat.boat.y
         let z = this.boat.position.z - PlayerBoat.boat.z
-        
-        // console.log(shipForward)
-        // console.log(type(shipForward)) 
-        // const cannonball = new cannonBall(this.boat.position.x, this.boat.position.y, this.boat.position.z, new THREE.Vector3(x,y,z))
+
         const cannonball = new cannonBall(this.boat.position.x, this.boat.position.y, this.boat.position.z, (PlayerBoat.boat.position.clone().add(this.boat.position.clone().multiplyScalar(-1))).multiplyScalar(0.01))
-        // cannonBallList.push(cannonball)
         EnemyBallsList.push(cannonball)
         this.hasFired = 1
       }
@@ -206,66 +202,30 @@ class Enemy {
   }
 }
 
-
-const PlayerBoat = new Boat()
-
-
-let enemyList = []
-const enemy = new Enemy()
-enemyList.push(enemy) 
-
-class Trash{
-  constructor(_scene){
-    scene.add( _scene )
-    _scene.scale.set(7, 7, 7)
-    if(Math.random() > .6){
-      _scene.position.set(random(-100, 100), -1, random(-100, 100))
-    }else{
-      _scene.position.set(random(-500, 500), -1, random(-1000, 1000))
-    }
-    this.collected = 0
-    this.trash = _scene
-    
-  }
-}
-
-async function loadModel(url){
-  return new Promise((resolve, reject) => {
-    loader.load(url, (gltf) => {
-      resolve(gltf.scene)
+// creating a treasure class
+class Treasure{
+  constructor(){
+    loader.load("assets/treasure/treasure.gltf", (gltf) => {
+      scene.add(gltf.scene)
+      gltf.scene.scale.set(7, 7, 7)
+      this.treasure = gltf.scene
+      this.collected = 0
+      if(Math.random() > 1){
+        this.treasure.position.set(random(-100, 100), -1, random(-100, 100))
+      }else{
+        this.treasure.position.set(random(-500, 500), -1, random(-1000, 1000))
+      }
     })
-  })
-}
-
-let boatModel = null
-async function createTrash(){
-  if(!boatModel){
-    boatModel = await loadModel("assets/trash/scene.gltf")
   }
-  return new Trash(boatModel.clone())
 }
 
-let trashes = []
-const TRASH_COUNT = 50
-let cameravector = new THREE.Vector3(0, 35.5, 80)
-
-
-
-async function init() {
-  renderer = new THREE.WebGLRenderer();
-  renderer.setPixelRatio( window.devicePixelRatio );
-  renderer.setSize( window.innerWidth, window.innerHeight );
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  document.body.appendChild( renderer.domElement );
-
-  scene = new THREE.Scene();
-
+function cameraSetup() {
   camera = new THREE.PerspectiveCamera( 55, window.innerWidth / window.innerHeight, 1, 20000 );
   camera.position.set( 0, 35, 0 );
   camera.lookAt( 0,-1.5,-80 );
+}
 
-  sun = new THREE.Vector3();
-
+function waterSetup() {
   const waterGeometry = new THREE.PlaneGeometry( 10000, 10000 );
 
   water = new Water(
@@ -278,58 +238,56 @@ async function init() {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
       } ),
-      sunDirection: new THREE.Vector3(),
-      sunColor: 0xffffff,
-      waterColor: 0x001e0f,
       distortionScale: 3.7,
-      fog: scene.fog !== undefined
     }
   );
-
   water.rotation.x = - Math.PI / 2;
-
   scene.add(water);
+}
+
+function addTreasure() {
+  for(let i = 0; i < 30; i++){
+    const chest = new Treasure()
+    treasureList.push(chest)
+  }
+}
+
+const PlayerBoat = new Boat()
+
+let enemyList = []
+const enemy = new Enemy()
+enemyList.push(enemy) 
+
+async function init() {
+  renderer = new THREE.WebGLRenderer();
+  renderer.setPixelRatio( window.devicePixelRatio );
+  renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  document.body.appendChild( renderer.domElement );
+
+  scene = new THREE.Scene();
+
+  cameraSetup();
+
+  sun = new THREE.Vector3();
+
+  waterSetup();
 
   const sky = new Sky();
   sky.scale.setScalar(10000);
   scene.add(sky);
 
-  const skyUniforms = sky.material. uniforms;
-
-  skyUniforms[ 'turbidity' ].value = 10;
-  skyUniforms[ 'rayleigh' ].value = 2;
-  skyUniforms[ 'mieCoefficient' ].value = 0.005;
-  skyUniforms[ 'mieDirectionalG' ].value = 0.8;
-
-  const parameters = {
-    elevation: 2,
-    azimuth: 180
-  };
-
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
 
-  function updateSun() {
+  sun.setFromSphericalCoords( 5, Math.PI/2.1, Math.PI );
 
-    const phi = THREE.MathUtils.degToRad( 90 - parameters.elevation );
-    const theta = THREE.MathUtils.degToRad( parameters.azimuth );
+  sky.material.uniforms[ 'sunPosition' ].value.copy( sun );
 
-    sun.setFromSphericalCoords( 1, phi, theta );
-
-    sky.material.uniforms[ 'sunPosition' ].value.copy( sun );
-    water.material.uniforms[ 'sunDirection' ].value.copy( sun ).normalize();
-
-    scene.environment = pmremGenerator.fromScene( sky ).texture;
-
-  }
-
-  updateSun();
+  scene.environment = pmremGenerator.fromScene( sky ).texture;
 
   const waterUniforms = water.material.uniforms;
 
-  for(let i = 0; i < TRASH_COUNT; i++){
-    const trash = await createTrash()
-    trashes.push(trash)
-  }
+  addTreasure();
 
   window.addEventListener( 'resize', onWindowResize );
 
@@ -380,14 +338,14 @@ function isColliding(obj1, obj2){
 
 function checkCollisions(){
   if(PlayerBoat.boat){
-    trashes.forEach(trash => {
-      if(trash.trash){
-        if(isColliding(PlayerBoat.boat, trash.trash)){
-          scene.remove(trash.trash)
-          if(trash.collected === 0)
+    treasureList.forEach(treasure => {
+      if(treasure.treasure){
+        if(isColliding(PlayerBoat.boat, treasure.treasure)){
+          scene.remove(treasure.treasure)
+          if(treasure.collected === 0)
           {
             score +=1
-            trash.collected = 1
+            treasure.collected = 1
           }
         }
       }
@@ -494,9 +452,6 @@ function updateBalls(){
   EnemyBallsList.forEach(ball => {
     ball.update();
   })
-  // cannonBallList.forEach(ball => {
-  //   ball.update();
-  // })
 }
 
 function checkgameOver()
@@ -515,7 +470,8 @@ function animate() {
   requestAnimationFrame(animate);
   if(health > 0)
   {
-    render();
+    water.material.uniforms[ 'time' ].value += 1.0 / 60.0;
+    renderer.render( scene, camera );
     checkCollisions();
     setbools();
     PlayerBoat.update();
@@ -527,11 +483,5 @@ function animate() {
   checkgameOver();
 }
 
-function render() {
-  water.material.uniforms[ 'time' ].value += 1.0 / 60.0;
-  renderer.render( scene, camera );
-}
-
 init();
-
 animate();
