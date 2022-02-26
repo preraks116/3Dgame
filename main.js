@@ -43,7 +43,7 @@ let keyPressed = {
     "pressed": 0,
     f: () => {
       // cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x + ballOffset.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z + ballOffset.z));
-      cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z));
+      cannonBallList.push(new cannonBall(PlayerBoat.boat.position.x,PlayerBoat.boat.position.y,PlayerBoat.boat.position.z, shipForward));
 
     }
   }
@@ -117,20 +117,13 @@ let enemySpeed = -0.1
 
 
 class cannonBall {
-  constructor(x,y,z){
+  constructor(x,y,z,w){
     console.log(x,y,z) 
     loader.load("assets/cannonBall/untitled.gltf", (gltf) => {
       scene.add(gltf.scene)
       gltf.scene.scale.set(100, 100, 100)
       gltf.scene.position.set(x,5,z)
-      // gltf.scene.rotateOnAxis(new Vector3(0,1,0), getRandomAngle())
-      // ball should move in the direction of shipForward
-      // gltf.scene.rotateOnAxis(new Vector3(0,1,0), getRandomAngle())
-      let angle = Math.atan(PlayerBoat.boat.position.z/PlayerBoat.boat.position.x)
-      console.log(angle)
-      gltf.scene.lookAt(PlayerBoat.boat.position)
-      
-      gltf.scene.rotateOnAxis(new Vector3(1,0,0), Math.PI/2)
+      this.initDirection = w.clone()
       this.ball = gltf.scene
       this.destroyed = 0
       this.speed = {
@@ -147,17 +140,7 @@ class cannonBall {
 
   update(){
     if(this.ball){
-      // console.log(this.speed.vel)
-      // if(this.destroyed == 0)
-      // {
-      //   let distance = Math.sqrt(Math.pow(this.ball.position.x - PlayerBoat.boat.position.x,2) + Math.pow(this.ball.position.z - PlayerBoat.boat.position.z,2))
-      //   if(distance > 1000)
-      //   {
-      //     this.speed.vel = 0
-      //     scene.remove(this.ball)
-      //   }
-      // }
-      this.ball.translateZ(-1*this.speed.vel)
+      this.ball.position.add(this.initDirection)
     }
   }
 }
