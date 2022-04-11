@@ -1,6 +1,7 @@
 # Shippy Shoot
 ## Running the game
 ```
+npm i three
 npm run dev
 ```
 ## Controls
