@@ -1,4 +1,8 @@
 # Shippy Shoot
+## Running the game
+```
+npm run dev
+```
 ## Controls
 ### Movement 
 - w: move forward
@@ -9,3 +13,4 @@
 - h: attack
 ### Miscellaneous
 - b: birds eye view
+
